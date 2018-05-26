@@ -90,13 +90,14 @@ def main(name,outname,choice,*args):
     test_x_dtm = scipy.sparse.load_npz('test_x_dtm_'+name+'.npz')
     train_x_dtm = scipy.sparse.load_npz('train_x_dtm_'+name+'.npz')
 
-    if len(args)==2:
+    if len(args)>=1:
         weight_strategy = args[0]   # depend on language: es/en
         set_weight (weight_strategy)
-        name2 = args[1] # train text, train label from resampling: smote
-        X_resampled = scipy.sparse.load_npz('train_x_dtm_'+name+'_'+name2+'.npz')
-        y_resampled = [int(str(line).replace('\n','')) for line in open('train_y_'+name +'_'+name2,'r')]
-        print X_resampled.shape, len(y_resampled)
+        if len(args)>=2:
+            name2 = args[1] # train text, train label from resampling: smote
+            X_resampled = scipy.sparse.load_npz('train_x_dtm_'+name+'_'+name2+'.npz')
+            y_resampled = [int(str(line).replace('\n','')) for line in open('train_y_'+name +'_'+name2,'r')]
+            print X_resampled.shape, len(y_resampled)
 
     #----------------------
     if choice =='1':
