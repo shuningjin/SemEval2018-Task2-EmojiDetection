@@ -17,7 +17,7 @@ Preprocessing text
 normalize to lowercase
 deal with punctuation, non-ASCII (remove or replace)
 tokenize and vectorize
-generate spase matrices
+generate scipy spase matrices
 '''
 
 import sys
@@ -38,20 +38,21 @@ def preprocess_x(infile):
     # punctuation
     raw = raw.replace(r',',' ') #remove comma
     # non-ASCII characters
+    # description: UTF-8 literal, unicode code point, name
     # remove
     raw = raw.replace(r'…',' ') # '\xe2\x80\xa6', U+2026, horizontal ellipsis  # clean text
     raw = raw.replace(r'•',' ') # '\xe2\x80\xa2', U+2022, bullet
     raw = raw.replace(r'·',' ') # '\xc2\xb7', U+00B7, middle dot
-    raw = raw.replace(r'・',' ') # '\xe3\x83\xbb', U+30FB, Katakana Middle Dot
-    raw = raw.replace(r'，',' ') # '\xef\xbc\x8c'
-    raw = raw.replace(r'—',' ') # '\xe2\x80\x94'
-    raw = raw.replace(r'–',' ') # '\xe2\x80\x93'
+    raw = raw.replace(r'・',' ') # '\xe3\x83\xbb', U+30FB, Katakana middle dot
+    raw = raw.replace(r'，',' ') # '\xef\xbc\x8c', U+FF0C, fullwidth comma
+    raw = raw.replace(r'—',' ') # '\xe2\x80\x94', U+2014, EM dash
+    raw = raw.replace(r'–',' ') # '\xe2\x80\x93', U+2013, EN dash
     # replace with standard ASCII
-    raw = raw.replace(r'’',"'") # '\xe2\x80\x99', U+2019, RIGHT SINGLE QUOTATION MARK
-    raw = raw.replace(r'‘',"'") # '\xe2\x80\x98', U+2018, LEFT SINGLE QUOTATION MARK
-    raw = raw.replace(r'“',r'"') # '\xe2\x80\x9c'
-    raw = raw.replace(r'”',r'"') # '\xe2\x80\x9d'
-    raw = raw.replace(r'！',r'!') # '\xef\xbc\x81'
+    raw = raw.replace(r'’',"'") # '\xe2\x80\x99', U+2019, right single quotation mark
+    raw = raw.replace(r'‘',"'") # '\xe2\x80\x98', U+2018, left single quotation mark
+    raw = raw.replace(r'“',r'"') # '\xe2\x80\x9c', U+201C, left double quotation mark
+    raw = raw.replace(r'”',r'"') # '\xe2\x80\x9d', U+201D, right double quotation mark
+    raw = raw.replace(r'！',r'!') # '\xef\xbc\x81', U+FF01, fullwidth exclamation mark
     return raw
 
 #---------------------------------------
