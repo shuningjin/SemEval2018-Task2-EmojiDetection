@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
@@ -8,10 +7,17 @@
 #   eg. python scorer.py es_test.labels es_output6 es
 #   eg. python scorer.py us_test.labels us_output6 us
 
+''' Sample output:
+Macro F-Score (official): 20.211
+-----
+Macro Precision: 21.228
+Macro Recall: 21.117
+Accuracy: 36.746
+'''
+
 import sys
 from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score
 
 def main(gold_path, pred_path,language):
 
@@ -29,7 +35,7 @@ def main(gold_path, pred_path,language):
     print ("Macro F-Score (official): "+str(round(f1_macro*100,3)))
     print ("-----")
     print ("Macro Precision: "+str(round(p_macro*100,3)))
-    print ("Marcro Recall: "+str(round(r_macro*100,3)))
+    print ("Macro Recall: "+str(round(r_macro*100,3)))
     print ("Accuracy: "+str(round(acc*100,3)))
 
 if __name__ == "__main__":
