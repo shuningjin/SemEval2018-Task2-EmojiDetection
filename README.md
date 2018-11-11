@@ -11,8 +11,8 @@ https://competitions.codalab.org/competitions/17344#learn_the_details-overview
 
 # **AUTHORS**
 Team: Duluth UROP :yum:
-- Shuning Jin, University of Minnesota Duluth, jinxx596@d.umn.edu
-- Ted Pedersen, University of Minnesota Duluth, tpederse@d.umn.edu
+- Shuning Jin, University of Minnesota Duluth, jinxx596 AT d.umn.edu
+- Ted Pedersen, University of Minnesota Duluth, tpederse AT d.umn.edu
 
 # **Script**
 ## 1. Preprocessing
