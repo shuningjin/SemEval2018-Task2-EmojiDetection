@@ -3,7 +3,7 @@
 
 # adpated from scorer_semeval18.py, detailed_results.py
 # evaulate accuracy, macro F/P/R
-# command line: python scorer.py [gold_path] [pred_path] [language(es/us)]
+# command line: python scorer.py [gold_path] [pred_path] [language(es/en)]
 #   eg. python scorer.py es_test.labels es_output6 es
 #   eg. python scorer.py us_test.labels us_output6 en
 
