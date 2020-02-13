@@ -40,7 +40,7 @@ Due to Twitter's privacy policy, I cannot upload the training data. Please follo
 
 
 #### toy training data
-For trial purpose,  this is a very small toy training data with 200 examples: `data/train_toy`
+For trial purpose,  this is a very small toy training data with 300 examples: `data/train_toy`
 
 
 
