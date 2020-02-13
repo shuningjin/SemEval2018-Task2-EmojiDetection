@@ -6,7 +6,7 @@
 # Multilingual Emoji Detection
 # Team: Duluth UROP
 # Author: Shuning Jin
-# Environment: Python 2.7
+# Environment: Python 3.6
 # Date: 2018-05-20
 ###########################
 
@@ -24,108 +24,149 @@ classifiers:
 '''
 
 import sys
-import scipy.sparse
+import time
+import argparse
+import os
+
+from scipy.sparse import load_npz
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from mlxtend.classifier import EnsembleVoteClassifier
-import time; start_time = time.time()
 
-def apply_model(model,resample= 0):
-    if resample == 0:
-        model.fit(train_x_dtm, train_y)
-    elif resample ==1:
-        model.fit(X_resampled, y_resampled)
 
-    pred_y= model.predict(test_x_dtm)
+def handle_arguments(cl_arguments):
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("--preprocess_dir", type=str, required=True, default=None, help="",)
+    parser.add_argument("--model", type=str, required=True, default=None, help="",
+                        choices=['logistic_regression', 'naive_bayes', 'random_foreset',
+                                 'ensemble1', 'ensemble2', 'meta_ensemble', ],)
+    parser.add_argument("--output", type=str, required=True, default=None, help="",)
+    parser.add_argument("--resample", type=str, required=False,
+                        default="none", choices=["smote", "enn", "none"], help="",)
+    parser.add_argument("--weight_strategy", type=str, required=False,
+                        default="none", choices=["es", "en"], help="",)
+    return parser.parse_args(cl_arguments)
 
-    output = open(outfile,'w')
-    for p in pred_y:
-        output.write(format("%d\n")%p)
-    output.close()
 
-#---------------------------------------
 # 1 multinomial Naive Bayes
 model1 = MultinomialNB(alpha=0.5, fit_prior=True)
 # 2 logistic regression
 #   (n_jobs=-1, use all cores for multiprocessing)
-model2 = LogisticRegression(random_state=0,n_jobs=-1, C=1,solver = 'lbfgs',penalty = 'l2')
+model2 = LogisticRegression(random_state=0, n_jobs=-1, C=1, solver='lbfgs', penalty='l2')
 # 3 random forest
 #   (n_jobs=-1, use all cores for multiprocessing)
-model3 = RandomForestClassifier (n_estimators=20, random_state=0, n_jobs=-1, criterion='gini')
-
+model3 = RandomForestClassifier(
+    n_estimators=20, random_state=0, n_jobs=-1, criterion='gini')
 # base ensemble (sklearn)
-weight_base = [1,1,1]; weight_meta = [1,1] # initialize
-voting = VotingClassifier(estimators=[('mNB', model1), ('logistic', model2),('rf', model3)], voting='soft', weights=weight_base)
+weight_base = [1, 1, 1]
+weight_meta = [1, 1]  # initialize
+voting = VotingClassifier(
+    estimators=[('mnb', model1), ('logistic', model2), ('rf', model3)], voting='soft', weights=weight_base)
+
+
+def apply_model(model, resample=0):
+    if resample == 0:
+        model.fit(train_x_dtm, train_y)
+    elif resample == 1:
+        model.fit(X_resampled, y_resampled)
+
+    pred_y = model.predict(test_x_dtm)
+
+    '''
+    with open(outfile, 'w') as f:
+        for p in pred_y:
+            print(p, file=f)
+    '''
+
+    output = open(os.path.join('experiment', outfile), 'w')
+    for p in pred_y:
+        output.write(format("%d\n") % p)
+    output.close()
+
 
 # meta ensemble
 def meta_ensemble():
-    #ensemble learning (mlxtend)
-    eclf1 = EnsembleVoteClassifier(clfs=[model1, model2, model3], weights=weight_base, voting = 'soft',refit=True)
+    # ensemble learning (mlxtend)
+    eclf1 = EnsembleVoteClassifier(clfs=[model1, model2, model3],
+                                   weights=weight_base, voting='soft', refit=True)
+    eclf2 = EnsembleVoteClassifier(clfs=[model1, model2, model3],
+                                   weights=weight_base, voting='soft', refit=True)
     eclf1.fit(train_x_dtm, train_y)
-    print 'ensemble1 fitted.'
-
-    eclf2 = EnsembleVoteClassifier(clfs=[model1, model2, model3], weights=weight_base, voting = 'soft',refit=True)
+    print('ensemble1 fitted.')
     eclf2.fit(X_resampled, y_resampled)
-    print 'ensemble2 fitted.'
+    print('ensemble2 fitted.')
 
-    eclf3 = EnsembleVoteClassifier(clfs=[eclf1,eclf2], weights=weight_meta, voting = 'soft',refit=False)
-    apply_model(eclf3)
+    eclf3 = EnsembleVoteClassifier(
+        clfs=[eclf1, eclf2], weights=weight_meta, voting='soft', refit=False)
 
-def set_weight (strategy):
-    global weight_base,weight_meta
-    if strategy == 'es' :
-        weight_base = [1.1,1,1]
-        weight_meta = [3,1]
+    return eclf3
+
+
+def set_weight(strategy):
+    global weight_base, weight_meta
+    if strategy == 'es':
+        weight_base = [1.1, 1, 1]
+        weight_meta = [3, 1]
     elif strategy == 'en':
-        weight_base = [1.5,6,1]
-        weight_meta = [4,1]
+        weight_base = [1.5, 6, 1]
+        weight_meta = [4, 1]
 
-#---------------------------------------
-def main(name,outname,choice,*args):
-    global train_x_dtm,train_y,X_resampled,y_resampled,test_x_dtm,outfile
+
+def main(name, outname, choice, weight_strategy="none", name2="none"):
+    global train_x_dtm, train_y, X_resampled, y_resampled, test_x_dtm, outfile
     outfile = outname
 
-    train_y = [int(str(line).replace('\n','')) for line in open('train_y_'+name,'r')]
-    test_x_dtm = scipy.sparse.load_npz('test_x_dtm_'+name+'.npz')
-    train_x_dtm = scipy.sparse.load_npz('train_x_dtm_'+name+'.npz')
+    # load preprocess
+    with open(os.path.join('experiment', name, 'train_y'), 'r') as f:
+        train_y = [int(str(line).replace('\n', '')) for line in f]
+    test_x_dtm = load_npz(os.path.join('experiment', name, 'test_x_dtm.npz'))
+    train_x_dtm = load_npz(os.path.join('experiment', name, 'train_x_dtm.npz'))
 
-    if len(args)>=1:
-        weight_strategy = args[0]   # depend on language: es/en
-        set_weight (weight_strategy)
-        if len(args)>=2:
-            name2 = args[1] # train text, train label from resampling: smote
-            X_resampled = scipy.sparse.load_npz('train_x_dtm_'+name+'_'+name2+'.npz')
-            y_resampled = [int(str(line).replace('\n','')) for line in open('train_y_'+name +'_'+name2,'r')]
-            print X_resampled.shape, len(y_resampled)
+    # load preprocess + resample
+    if name2 != 'none':
+        X_resampled = load_npz(os.path.join('experiment', name, 'train_x_dtm_' + name2 + '.npz'))
+        with open(os.path.join('experiment', name, 'train_y_' + name2), 'r') as f:
+            y_resampled = [int(str(line).replace('\n', '')) for line in f]
+        print(X_resampled.shape, len(y_resampled))
 
-    #----------------------
-    if choice =='1':
-        apply_model(model1) #multinomial naive bayes
-    elif choice == '2':
-        apply_model(model2) #logistic regression
-    elif choice == '3':
-        apply_model(model3) #random forest
-    elif choice =='4':
-        apply_model(voting) #ensemble1
-    elif choice == '5':
-        apply_model(voting,resample=1) #ensemble2 (resampling)
-    elif choice == '6':
-        meta_ensemble() #meta ensemble (ensemble1 + ensemble2)
+    if weight_strategy != 'none':
+        # depend on language: es/en
+        set_weight(weight_strategy)
+
+    if choice == 'naive_bayes':
+        apply_model(model1)  # multinomial naive bayes
+    elif choice == 'logistic_regression':
+        apply_model(model2)  # logistic regression
+    elif choice == 'random_forest':
+        apply_model(model3)  # random forest
+    elif choice == 'ensemble1':
+        apply_model(voting)  # ensemble1
+    elif choice == 'ensemble2':
+        apply_model(voting, resample=1)  # ensemble2 (resampling)
+    elif choice == 'meta_ensemble':
+        eclf3 = meta_ensemble()  # meta ensemble (ensemble1 + ensemble2)
+        apply_model(eclf3)
     else:
-        print 'Error: illegal choice.'
-# end main
-#---------------------------------------
+        print('Error: illegal choice.')
+
+
 if __name__ == "__main__":
 
-    name= sys.argv[1] # train text, train label, test text from preprocessing
-    outfile = sys.argv[2] # predict label
-    choice = sys.argv[3]   # classifier
-    args = sys.argv[4:]
-    main(name,outfile,choice,args)
+    args = handle_arguments(sys.argv[1:])
+    # predict label
+    outfile = args.output
+    # train text, train label, test text from preprocessing
+    preprocess_dir = args.preprocess_dir
+    resample = args.resample
+    # classifier
+    choice = args.model
+    weight_strategy = args.weight_strategy
+
+    start_time = time.time()
+
+    main(preprocess_dir, outfile, choice, weight_strategy, resample)
 
     seconds = time.time() - start_time
-    minutes = seconds/60
-    print("--- %s seconds ---" %seconds)
-    print("--- %s minutes ---" %minutes)
-    sys.exit(1)
+    minutes = seconds / 60
+    print("Modeling time: {:.2f} seconds, {:.2f} minutes".format(seconds, minutes))
