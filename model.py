@@ -34,10 +34,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from mlxtend.classifier import EnsembleVoteClassifier
 
+from preprocess import save_label, load_label
+
 
 def handle_arguments(cl_arguments):
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("--preprocess_dir", type=str, required=True, default=None, help="",)
+    parser.add_argument("--run_dir", type=str, required=True, default=None, help="",)
     parser.add_argument("--model", type=str, required=True, default=None, help="",
                         choices=['logistic_regression', 'naive_bayes', 'random_foreset',
                                  'ensemble1', 'ensemble2', 'meta_ensemble', ],)
@@ -49,6 +51,7 @@ def handle_arguments(cl_arguments):
     return parser.parse_args(cl_arguments)
 
 
+''' base model '''
 # 1 multinomial Naive Bayes
 model1 = MultinomialNB(alpha=0.5, fit_prior=True)
 # 2 logistic regression
@@ -58,31 +61,27 @@ model2 = LogisticRegression(random_state=0, n_jobs=-1, C=1, solver='lbfgs', pena
 #   (n_jobs=-1, use all cores for multiprocessing)
 model3 = RandomForestClassifier(
     n_estimators=20, random_state=0, n_jobs=-1, criterion='gini')
-# base ensemble (sklearn)
+
+''' ensemble model '''
+# initialize weights
 weight_base = [1, 1, 1]
-weight_meta = [1, 1]  # initialize
+weight_meta = [1, 1]
+
+
+def set_weight(strategy):
+    # depend on language: es/en
+    global weight_base, weight_meta
+    if strategy == 'es':
+        weight_base = [1.1, 1, 1]
+        weight_meta = [3, 1]
+    elif strategy == 'en':
+        weight_base = [1.5, 6, 1]
+        weight_meta = [4, 1]
+
+
+# base ensemble (sklearn)
 voting = VotingClassifier(
     estimators=[('mnb', model1), ('logistic', model2), ('rf', model3)], voting='soft', weights=weight_base)
-
-
-def apply_model(model, resample=0):
-    if resample == 0:
-        model.fit(train_x_dtm, train_y)
-    elif resample == 1:
-        model.fit(X_resampled, y_resampled)
-
-    pred_y = model.predict(test_x_dtm)
-
-    '''
-    with open(outfile, 'w') as f:
-        for p in pred_y:
-            print(p, file=f)
-    '''
-
-    output = open(os.path.join('experiment', outfile), 'w')
-    for p in pred_y:
-        output.write(format("%d\n") % p)
-    output.close()
 
 
 # meta ensemble
@@ -94,7 +93,7 @@ def meta_ensemble():
                                    weights=weight_base, voting='soft', refit=True)
     eclf1.fit(train_x_dtm, train_y)
     print('ensemble1 fitted.')
-    eclf2.fit(X_resampled, y_resampled)
+    eclf2.fit(x_resampled, y_resampled)
     print('ensemble2 fitted.')
 
     eclf3 = EnsembleVoteClassifier(
@@ -103,35 +102,35 @@ def meta_ensemble():
     return eclf3
 
 
-def set_weight(strategy):
-    global weight_base, weight_meta
-    if strategy == 'es':
-        weight_base = [1.1, 1, 1]
-        weight_meta = [3, 1]
-    elif strategy == 'en':
-        weight_base = [1.5, 6, 1]
-        weight_meta = [4, 1]
+def apply_model(model, resample=0):
+    if resample == 0:
+        model.fit(train_x_dtm, train_y)
+    elif resample == 1:
+        model.fit(x_resampled, y_resampled)
+
+    pred_y = model.predict(test_x_dtm)
+    save_label(os.path.join(outfile), pred_y)
 
 
-def main(name, outname, choice, weight_strategy="none", name2="none"):
-    global train_x_dtm, train_y, X_resampled, y_resampled, test_x_dtm, outfile
-    outfile = outname
+def main(runname, outname, choice, weight_strategy="none", resample="none"):
+    print('\n--- PHASE: MODELING ---')
+    global train_x_dtm, train_y, x_resampled, y_resampled, test_x_dtm, outfile
+
+    preprocess_dir = os.path.join('experiment', runname, 'preprocess')
+    outfile = os.path.join('experiment', runname, outname)
 
     # load preprocess
-    with open(os.path.join('experiment', name, 'train_y'), 'r') as f:
-        train_y = [int(str(line).replace('\n', '')) for line in f]
-    test_x_dtm = load_npz(os.path.join('experiment', name, 'test_x_dtm.npz'))
-    train_x_dtm = load_npz(os.path.join('experiment', name, 'train_x_dtm.npz'))
+    train_y = load_label(os.path.join(preprocess_dir, 'train_y'))
+    test_x_dtm = load_npz(os.path.join(preprocess_dir, 'test_x_dtm.npz'))
+    train_x_dtm = load_npz(os.path.join(preprocess_dir, 'train_x_dtm.npz'))
 
     # load preprocess + resample
-    if name2 != 'none':
-        X_resampled = load_npz(os.path.join('experiment', name, 'train_x_dtm_' + name2 + '.npz'))
-        with open(os.path.join('experiment', name, 'train_y_' + name2), 'r') as f:
-            y_resampled = [int(str(line).replace('\n', '')) for line in f]
-        print(X_resampled.shape, len(y_resampled))
+    if resample != 'none':
+        x_resampled = load_npz(os.path.join(preprocess_dir, 'train_x_dtm_' + resample + '.npz'))
+        y_resampled = load_label(os.path.join(preprocess_dir, 'train_y_' + resample))
+        # print(x_resampled.shape, len(y_resampled))
 
     if weight_strategy != 'none':
-        # depend on language: es/en
         set_weight(weight_strategy)
 
     if choice == 'naive_bayes':
@@ -157,7 +156,7 @@ if __name__ == "__main__":
     # predict label
     outfile = args.output
     # train text, train label, test text from preprocessing
-    preprocess_dir = args.preprocess_dir
+    runname = args.run_dir
     resample = args.resample
     # classifier
     choice = args.model
@@ -165,7 +164,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    main(preprocess_dir, outfile, choice, weight_strategy, resample)
+    main(runname, outfile, choice, weight_strategy, resample)
 
     seconds = time.time() - start_time
     minutes = seconds / 60

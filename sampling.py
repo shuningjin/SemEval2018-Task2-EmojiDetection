@@ -28,10 +28,12 @@ from scipy.sparse import load_npz, save_npz
 from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
 from imblearn.under_sampling import TomekLinks, EditedNearestNeighbours
 
+from preprocess import save_label, save_sparse_matrix, load_label
+
 
 def handle_arguments(cl_arguments):
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("--preprocess_dir", type=str, required=True, default=None, help="",)
+    parser.add_argument("--run_dir", type=str, required=True, default=None, help="",)
     parser.add_argument("--resample", type=str, required=True,
                         default='none', choices=["smote", "enn", "none"], help="",)
     parser.add_argument("--knn", type=int, required=False, default=5, help="",)
@@ -65,29 +67,34 @@ def sampling(type, train_x_dtm, train_y, k=5):
         print('Undersampling: {}'.format(type))
         model = EditedNearestNeighbours()  # random_state=0
 
-    X_resampled, y_resampled = model.fit_sample(train_x_dtm, train_y)
+    x_resampled, y_resampled = model.fit_sample(train_x_dtm, train_y)
     compare_frequency(train_y, y_resampled)
 
-    return X_resampled, y_resampled
+    return x_resampled, y_resampled
 
 
-def main(preprocess_dir, type, k=5):
+def main(runname, type, k=5):
     if type == 'none':
+        return
+    print('\n--- PHASE: RESAMPLING ---')
+    preprocess_dir = os.path.join('experiment', runname, 'preprocess')
+    files = os.listdir(preprocess_dir)
+    target_x = 'train_x_dtm_{:s}.npz'.format(type)
+    target_y = 'train_y_{:s}'.format(type)
+    if target_x in files and target_y in files:
+        print('Resampled files already exists. Pass this step.')
         return
 
     # read preprocessed files
-    train_y = [int(str(line).replace('\n', ''))
-               for line in open(os.path.join('experiment', preprocess_dir, 'train_y'), 'r')]
-    train_x_dtm = load_npz(os.path.join('experiment', preprocess_dir, 'train_x_dtm.npz'))
+    train_y = load_label(os.path.join(preprocess_dir, 'train_y'))
+    train_x_dtm = load_npz(os.path.join(preprocess_dir, 'train_x_dtm.npz'))
 
     # resampling
-    X_resampled, y_resampled = sampling(type, train_x_dtm, train_y, k)
+    x_resampled, y_resampled = sampling(type, train_x_dtm, train_y, k)
 
     # save resampled files
-    save_npz(os.path.join('experiment', preprocess_dir, 'train_x_dtm' + '_' + type), X_resampled)
-    y_array = open(os.path.join('experiment', preprocess_dir, 'train_y' + '_' + type), 'w')
-    for line in y_resampled:
-        print(line, file=y_array)
+    save_sparse_matrix(os.path.join(preprocess_dir, target_x), x_resampled)
+    save_label(os.path.join(preprocess_dir, target_y), y_resampled)
 
 
 if __name__ == "__main__":
@@ -95,10 +102,10 @@ if __name__ == "__main__":
     start_time = time.time()
 
     args = handle_arguments(sys.argv[1:])
-    preprocess_dir = args.preprocess_dir  # train text, train label, test text
+    runname = args.run_dir  # train text, train label, test text
     resample_choice = args.resample       # 'smote', 'enn', 'none'
 
-    main(preprocess_dir, resample_choice, k=args.knn)
+    main(runname, resample_choice, k=args.knn)
 
     seconds = time.time() - start_time
     minutes = seconds / 60

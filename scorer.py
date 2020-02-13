@@ -22,6 +22,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 
 
 def main(gold_path, pred_path, language):
+    print('\n--- PHASE: EVALUATING ---')
 
     G = open(gold_path, 'r').read().replace("\r", "").replace(" ", "").split("\n")
     P = open(pred_path, 'r').read().replace("\r", "").replace(" ", "").split("\n")
