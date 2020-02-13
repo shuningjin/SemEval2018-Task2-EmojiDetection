@@ -94,6 +94,8 @@ def read_text(path):
             line = clean(line)
             line = line.strip('\n').strip(' ')
             text.append(line)
+    print('Read text: {:s}. Total example: {:d}'
+          .format(path, len(text)))
     return text
 
 

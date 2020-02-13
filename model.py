@@ -47,7 +47,7 @@ def handle_arguments(cl_arguments):
     parser.add_argument("--resample", type=str, required=False,
                         default="none", choices=["smote", "enn", "none"], help="",)
     parser.add_argument("--weight_strategy", type=str, required=False,
-                        default="none", choices=["es", "en"], help="",)
+                        default="none", choices=["es", "us"], help="",)
     return parser.parse_args(cl_arguments)
 
 
@@ -74,7 +74,7 @@ def set_weight(strategy):
     if strategy == 'es':
         weight_base = [1.1, 1, 1]
         weight_meta = [3, 1]
-    elif strategy == 'en':
+    elif strategy == 'us':
         weight_base = [1.5, 6, 1]
         weight_meta = [4, 1]
 

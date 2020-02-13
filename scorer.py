@@ -29,7 +29,7 @@ def main(gold_path, pred_path, language):
 
     if language == 'es':
         n_labels = 19
-    elif language == 'en':
+    elif language == 'us':
         n_labels = 20
     labels = [str(x) for x in range(n_labels)]
 

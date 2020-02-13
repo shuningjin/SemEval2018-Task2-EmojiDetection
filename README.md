@@ -40,7 +40,7 @@ Due to Twitter's privacy policy, I cannot upload the training data. Please follo
 
 
 #### toy training data
-For trial purpose,  this is a very small toy training data with 100 examples: `data/train_toy`
+For trial purpose,  this is a very small toy training data with 200 examples: `data/train_toy`
 
 
 
@@ -56,10 +56,10 @@ pip install -r requirements.txt
 Try demo runs: run the pipeline commands at once
 
 ```bash
-bash demo1.sh
-```
-```bash
-bash demo2.sh
+bash script/es_demo1.sh
+bash script/es_demo2.sh
+bash script/us_demo1.sh
+bash script/us_demo2.sh
 ```
 
 ## 1. Preprocessing
@@ -141,7 +141,7 @@ python model.py \
   - ensemble2
   - meta_ensemble
 
-- language: es - Spanish, en - English
+- language: es - Spanish, us - English
 
 - resample
   - optional: only if resampled data is to be used (e.g. ensemble2, meta_ensemble)
@@ -163,9 +163,9 @@ The script generates 1 file:
 ## 4. Evaluation
 
 ```bash
-python scorer.py [gold_path] [output_path] [language(es/en)]
+python scorer.py [gold_path] [output_path] [language(es/us)]
 ```
-Language: es - Spanish, en - English
+Language: es - Spanish, us - English
 
 Example of usage:
 ```bash
