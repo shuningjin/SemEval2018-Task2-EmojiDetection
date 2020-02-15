@@ -61,10 +61,10 @@ def compare_frequency(train_y, y_resampled):
 
 def sampling(type, train_x_dtm, train_y, k=5):
     if type == 'smote':
-        print('Oversampling: {}'.format(type))
+        print('Oversampling: ' + type)
         model = SMOTE(random_state=0, k_neighbors=k)
     elif type == 'enn':
-        print('Undersampling: {}'.format(type))
+        print('Undersampling: ' + type)
         model = EditedNearestNeighbours()  # random_state=0
 
     x_resampled, y_resampled = model.fit_sample(train_x_dtm, train_y)
@@ -102,8 +102,8 @@ if __name__ == "__main__":
     start_time = time.time()
 
     args = handle_arguments(sys.argv[1:])
-    runname = args.run_dir  # train text, train label, test text
-    resample_choice = args.resample       # 'smote', 'enn', 'none'
+    runname = args.run_dir
+    resample_choice = args.resample
 
     main(runname, resample_choice, k=args.knn)
 

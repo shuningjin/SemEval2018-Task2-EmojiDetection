@@ -53,13 +53,13 @@ def handle_arguments(cl_arguments):
 
 ''' base model '''
 # 1 multinomial Naive Bayes
-model1 = MultinomialNB(alpha=0.5, fit_prior=True)
+mnb = MultinomialNB(alpha=0.5, fit_prior=True)
 # 2 logistic regression
 #   (n_jobs=-1, use all cores for multiprocessing)
-model2 = LogisticRegression(random_state=0, n_jobs=-1, C=1, solver='lbfgs', penalty='l2')
+lr = LogisticRegression(random_state=0, n_jobs=-1, C=1, solver='lbfgs', penalty='l2')
 # 3 random forest
 #   (n_jobs=-1, use all cores for multiprocessing)
-model3 = RandomForestClassifier(
+rf = RandomForestClassifier(
     n_estimators=20, random_state=0, n_jobs=-1, criterion='gini')
 
 ''' ensemble model '''
@@ -81,25 +81,25 @@ def set_weight(strategy):
 
 # base ensemble (sklearn)
 voting = VotingClassifier(
-    estimators=[('mnb', model1), ('logistic', model2), ('rf', model3)], voting='soft', weights=weight_base)
+    estimators=[('mnb', mnb), ('logistic', lr), ('rf', rf)], voting='soft', weights=weight_base)
 
 
 # meta ensemble
-def meta_ensemble():
+def meta_ensemble_model():
     # ensemble learning (mlxtend)
-    eclf1 = EnsembleVoteClassifier(clfs=[model1, model2, model3],
-                                   weights=weight_base, voting='soft', refit=True)
-    eclf2 = EnsembleVoteClassifier(clfs=[model1, model2, model3],
-                                   weights=weight_base, voting='soft', refit=True)
-    eclf1.fit(train_x_dtm, train_y)
+    ensemble1 = EnsembleVoteClassifier(clfs=[mnb, lr, rf],
+                                       weights=weight_base, voting='soft', refit=True)
+    ensemble2 = EnsembleVoteClassifier(clfs=[mnb, lr, rf],
+                                       weights=weight_base, voting='soft', refit=True)
+    meta_ensemble = EnsembleVoteClassifier(
+        clfs=[ensemble1, ensemble2], weights=weight_meta, voting='soft', refit=False)
+
+    ensemble1.fit(train_x_dtm, train_y)
     print('ensemble1 fitted.')
-    eclf2.fit(x_resampled, y_resampled)
+    ensemble2.fit(x_resampled, y_resampled)
     print('ensemble2 fitted.')
 
-    eclf3 = EnsembleVoteClassifier(
-        clfs=[eclf1, eclf2], weights=weight_meta, voting='soft', refit=False)
-
-    return eclf3
+    return meta_ensemble
 
 
 def apply_model(model, resample=0):
@@ -133,19 +133,25 @@ def main(runname, outname, choice, weight_strategy="none", resample="none"):
     if weight_strategy != 'none':
         set_weight(weight_strategy)
 
+    # multinomial naive bayes
     if choice == 'naive_bayes':
-        apply_model(model1)  # multinomial naive bayes
+        apply_model(mnb)
+    # logistic regression
     elif choice == 'logistic_regression':
-        apply_model(model2)  # logistic regression
+        apply_model(lr)
+    # random forest
     elif choice == 'random_forest':
-        apply_model(model3)  # random forest
+        apply_model(rf)
+    # ensemble1
     elif choice == 'ensemble1':
-        apply_model(voting)  # ensemble1
+        apply_model(voting)
+    # ensemble2 (resampling)
     elif choice == 'ensemble2':
-        apply_model(voting, resample=1)  # ensemble2 (resampling)
+        apply_model(voting, resample=1)
+    # meta ensemble (ensemble1 + ensemble2)
     elif choice == 'meta_ensemble':
-        eclf3 = meta_ensemble()  # meta ensemble (ensemble1 + ensemble2)
-        apply_model(eclf3)
+        meta_ensemble = meta_ensemble_model()
+        apply_model(meta_ensemble)
     else:
         print('Error: illegal choice.')
 

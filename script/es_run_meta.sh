@@ -17,6 +17,6 @@ python model.py \
 --weight_strategy es
 
 python scorer.py \
-data/all/es_test.labels \
+data/test/es_test.labels \
 experiment/es_run/es_output_meta \
 es

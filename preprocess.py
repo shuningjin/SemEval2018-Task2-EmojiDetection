@@ -131,10 +131,10 @@ def main(train_text_path, train_label_path, test_text_path, runname):
     # save text x as sparse matrix
     save_sparse_matrix(os.path.join(preprocess_dir, 'train_x_dtm.npz'), train_x_dtm)
     save_sparse_matrix(os.path.join(preprocess_dir, 'test_x_dtm.npz'), test_x_dtm)
-    # save label y
+
+    # copy label y
     copy(src=train_label_path, dst=os.path.join(preprocess_dir, 'train_y'))
     #train_y = load_label(train_label_path)
-    #save_label(os.path.join(preprocess_dir, 'train_y'), train_y)
 
 
 if __name__ == "__main__":
